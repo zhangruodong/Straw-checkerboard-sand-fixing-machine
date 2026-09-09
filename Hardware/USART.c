@@ -3,7 +3,10 @@
 #include <stdarg.h>
 
 uint8_t Serial_RxData1;		// 定义串口1接收的数据变量
-uint8_t Serial_RxFlag1;		// 定义串口1接收的标志位（USART1）
+uint8_t Serial_RxFlag1;
+char Serial1_RxLine[16];            // 命令行缓冲（带数字的标定命令）
+volatile uint8_t Serial1_LineLen = 0;    // 已接收字节数
+volatile uint8_t Serial1_LineReady = 0;  // 完整命令行就绪
 
 uint8_t Serial_RxData2;		// 定义串口2接收的数据变量
 uint8_t Serial_RxFlag2;		// 定义串口2接收的标志位（USART2）
@@ -47,7 +50,7 @@ void Serial_Init(void)
 
     /* 中断配置 */
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE); // 使能 USART1 接收中断
-    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE); // 使能 USART2 接收中断
+    // USART_ITConfig(USART2, USART_IT_RXNE, ENABLE); // 串口2暂未使用，接收中断暂不开启
 
     /* NVIC 配置 */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
@@ -180,13 +183,19 @@ uint8_t Serial2_GetRxData(void)
   */
 void USART1_IRQHandler(void)
 {
-    if (USART_GetITStatus(USART1, USART_IT_RXNE) == SET) // 判断是否是 USART1 的接收事件触发的中断
+    if (USART_GetITStatus(USART1, USART_IT_RXNE) == SET) // 判断是否 USART1 的接收事件
     {
-        Serial_RxData1 = USART_ReceiveData(USART1);     // 读取数据寄存器，存储到接收数据变量
-        Serial_RxFlag1 = 1;                             // 置接收标志位为1
-        USART_ClearITPendingBit(USART1, USART_IT_RXNE); // 清除 USART1 的 RXNE 标志位
-                                                        // 读取数据寄存器会自动清除此标志位
-                                                        // 已读取数据寄存器的话也可不执行此句
+        uint8_t c = USART_ReceiveData(USART1);           // 读取数据寄存器
+        if (c == '\r' || c == '\n') {                  // 回车/换行 = 一条命令结束
+            if (Serial1_LineLen > 0) {
+                Serial1_RxLine[Serial1_LineLen] = 0;     // 补字符串结尾
+                Serial1_LineReady = 1;                   // 命令就绪
+            }
+            Serial1_LineLen = 0;
+        } else if (Serial1_LineLen < 15) {               // 缓冲最多 15 字节
+            Serial1_RxLine[Serial1_LineLen++] = c;
+        }
+        USART_ClearITPendingBit(USART1, USART_IT_RXNE);  // 清 RXNE 标志位
     }
 }
 

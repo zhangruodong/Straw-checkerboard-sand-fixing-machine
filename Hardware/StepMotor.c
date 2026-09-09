@@ -98,26 +98,6 @@ void StepMotor1_SetDirection(uint8_t Direction)
 //    TIM_SetCompare1(TIM1, arr_value / 2);
 //}
 
-void Integration1(uint16_t dir, uint16_t pul, uint16_t ring)   //,uint32_t rpm
-{
-//	// 根据RPM计算所需频率
-//    // 假设电机步距角1.8°（200步/转）：
-//    const uint32_t steps_per_rev = 200; 
-//    uint32_t frequency = (rpm * steps_per_rev) / 60; // 频率 = (RPM×每转步数)/60
-//    
-//    // 设置转速
-//    StepMotor1_SetFrequency(frequency);
-    for(uint16_t i = 0; i < ring; i++)
-    {
-        StepMotor1_SetDirection(dir); // 设置方向
-        StepMotor1_SetPulse(pul); // 设置脉冲
-
-        // 将延迟降低到500ms
-        Delay_ms(10); 
-    }
-}
-
-
 /*------------------------------------------------------TIM2-----------------------------------------------------------------------*/
 //TIM2时钟
  volatile uint32_t StepMotor_PUL_CNT2 = 0;
@@ -167,7 +147,7 @@ void StepMotor2_SetPulse(uint16_t Pulse)
 {
     StepMotor_PUL_SET2 = Pulse;
     StepMotor_PUL_CNT2 = 0;
-	TIM_CtrlPWMOutputs(TIM2, ENABLE);							//使能PWM输出 
+	TIM_CCxCmd(TIM2, TIM_Channel_1, TIM_CCx_Enable);							//使能PWM输出 
 	
 }
 
@@ -182,23 +162,11 @@ void StepMotor2_SetDirection(uint8_t Direction)
 		GPIO_SetBits(GPIOF,GPIO_Pin_0 );		//设置PF0引脚为高电平，方向为反转
 	}
 }
-void Integration2(uint16_t dir, uint16_t pul, uint16_t ring)   
-{
-
-    for(uint16_t i = 0; i < ring; i++)
-    {
-        StepMotor2_SetDirection(dir); // 设置方向
-        StepMotor2_SetPulse(pul); // 设置脉冲
-
-        // 将延迟降低到500ms
-        Delay_ms(10); 
-    }
-}
 /*------------------------------------------------------TIM3-----------------------------------------------------------------------*/
 //TIM3时钟
  volatile uint32_t StepMotor_PUL_CNT3 = 0;
  volatile uint32_t StepMotor_PUL_SET3 = 0;
-/**TIM  TIM3 CH1  PA6   PUL      GPIOF  PIN  F1
+/**TIM  TIM3 CH1  PA6   PUL      GPIOF  PIN  F6
   * 函    数：PWM初始化
   * 参    数：无
   * 返 回 值：无
@@ -213,7 +181,7 @@ void Integration2(uint16_t dir, uint16_t pul, uint16_t ring)
 		GPIO_InitStructure3.GPIO_Speed=GPIO_Speed_50MHz;
 		GPIO_Init(GPIOA,&GPIO_InitStructure3);
 		
-		GPIO_InitStructure3.GPIO_Mode = GPIO_Mode_Out_PP;//PF0  DIR
+		GPIO_InitStructure3.GPIO_Mode = GPIO_Mode_Out_PP;//PF6  DIR
 		GPIO_InitStructure3.GPIO_Pin = GPIO_Pin_6;
 		GPIO_Init(GPIOF,&GPIO_InitStructure3);
 		TIM3_Init();
@@ -240,7 +208,7 @@ void StepMotor3_SetPulse(uint16_t Pulse)
 {
     StepMotor_PUL_SET3 = Pulse;
     StepMotor_PUL_CNT3 = 0;
-	TIM_CtrlPWMOutputs(TIM3, ENABLE);							//使能PWM输出 
+	TIM_CCxCmd(TIM3, TIM_Channel_1, TIM_CCx_Enable);							//使能PWM输出 
 	
 }
 
@@ -254,18 +222,6 @@ void StepMotor3_SetDirection(uint8_t Direction)
 	{
 		GPIO_SetBits(GPIOF,GPIO_Pin_6 );		//设置PF6引脚为高电平，方向为反转
 	}
-}
-void Integration3(uint16_t dir, uint16_t pul, uint16_t ring)   
-{
-
-    for(uint16_t i = 0; i < ring; i++)
-    {
-        StepMotor3_SetDirection(dir); // 设置方向
-        StepMotor3_SetPulse(pul); // 设置脉冲
-
-        // 将延迟降低到500ms
-        Delay_ms(10); 
-    }
 }
 /*------------------------------------------------------TIM4-----------------------------------------------------------------------*/
 //TIM4时钟
@@ -313,7 +269,7 @@ void StepMotor4_SetPulse(uint16_t Pulse)
 {
     StepMotor_PUL_SET4 = Pulse;  
     StepMotor_PUL_CNT4 = 0;      
-    TIM_CtrlPWMOutputs(TIM4, ENABLE);  
+    TIM_CCxCmd(TIM4, TIM_Channel_1, TIM_CCx_Enable);  
 }
 
 void StepMotor4_SetDirection(uint8_t Direction)
@@ -327,20 +283,6 @@ void StepMotor4_SetDirection(uint8_t Direction)
 		GPIO_SetBits(GPIOF,GPIO_Pin_2 );		//设置PF2引脚为高电平，方向为反转
 	}
 }
-void Integration4(uint16_t dir, uint16_t pul, uint16_t ring)   
-{
-
-    for(uint16_t i = 0; i < ring; i++)
-    {
-        StepMotor4_SetDirection(dir); // 设置方向
-        StepMotor4_SetPulse(pul); // 设置脉冲
-
-        // 将延迟降低到500ms
-        Delay_ms(10); 
-    }
-}
-
-
 /*------------------------------------------------------非阻塞-----------------------------------------------------------------------*/
 
 void StepMotor_UpdateNonBlocking(void) {
@@ -449,3 +391,29 @@ void StopAllMotors(void) {
     TIM_CCxCmd(TIM3, TIM_Channel_1, TIM_CCx_Disable);
     TIM_CCxCmd(TIM4, TIM_Channel_1, TIM_CCx_Disable);
 }
+/* ---- 履带封装：电机1=左前，2=右前，3=左后，4=右后 ---- */
+#define TRACK_FWD 0   // 前进方向（按实际接线标定，反了就改这里）
+#define TRACK_BWD 1   // 后退方向
+
+// 四轮同步走 steps 步（steps>0 前进，steps<0 后退）
+void Track_Go(int16_t steps) {
+    uint8_t dir = (steps >= 0) ? TRACK_FWD : TRACK_BWD;
+    uint16_t s = (uint16_t)((steps >= 0) ? steps : -steps);
+
+    StepMotor1_SetDirection(dir); StepMotor2_SetDirection(dir);
+    StepMotor3_SetDirection(dir); StepMotor4_SetDirection(dir);
+    StepMotor1_SetPulse(s); StepMotor2_SetPulse(s);
+    StepMotor3_SetPulse(s); StepMotor4_SetPulse(s);
+}
+
+// 原地转向：dir>0 左转（左侧后退、右侧前进），dir<0 右转
+void Track_Turn(int8_t dir, uint16_t steps) {
+    uint8_t ld = (dir > 0) ? TRACK_BWD : TRACK_FWD;  // 左侧(电机1,3)
+    uint8_t rd = (dir > 0) ? TRACK_FWD : TRACK_BWD;  // 右侧(电机2,4)
+
+    StepMotor1_SetDirection(ld); StepMotor3_SetDirection(ld);  // 左前+左后
+    StepMotor2_SetDirection(rd); StepMotor4_SetDirection(rd);  // 右前+右后
+    StepMotor1_SetPulse(steps); StepMotor3_SetPulse(steps);
+    StepMotor2_SetPulse(steps); StepMotor4_SetPulse(steps);
+}
+

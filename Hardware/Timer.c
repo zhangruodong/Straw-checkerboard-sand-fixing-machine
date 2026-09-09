@@ -5,7 +5,7 @@
 extern volatile uint32_t timer_counter ;
 void TIM1_Init(void)
 {
-	RCC_APB1PeriphClockCmd(RCC_APB2Periph_TIM1,ENABLE);//开启TIM1的时钟
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1,ENABLE);//开启TIM1的时钟
 	TIM_InternalClockConfig(TIM1);	//选择TIM1为内部时钟，若不调用此函数，TIM默认也为内部时钟
 	/*时基单元初始化*/
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;				//定义结构体变量
@@ -139,8 +139,8 @@ void TIM3_Init(void)
     NVIC_Init(&NVIC_InitStructure);
     
 		  // 启用预装载
-    TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
-    TIM_ARRPreloadConfig(TIM2, ENABLE);
+    TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
+    TIM_ARRPreloadConfig(TIM3, ENABLE);
     /* 启动定时器 */
     TIM_Cmd(TIM3, ENABLE);
 }
@@ -197,8 +197,8 @@ void TIM4_Init(void)
 void TIM5_Init(void) {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
-    TIM_TimeBaseStructure.TIM_Prescaler = 7200 - 1;     // 预分频值（72MHz / 7200 = 10KHz）
-    TIM_TimeBaseStructure.TIM_Period = 10000 - 1;       // 自动重装载值（10KHz / 10000 = 1秒中断一次）
+    TIM_TimeBaseStructure.TIM_Prescaler = 72 - 1;      // 预分频值：72MHz / 72 = 1MHz
+    TIM_TimeBaseStructure.TIM_Period = 1000 - 1;       // 自动重装值：1MHz / 1000 = 1ms，即 1ms 中断一次
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure); 
@@ -218,13 +218,15 @@ void GPIO1_Init(void) {
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
-void TIM5_UP_IRQHandler(void) {
+void TIM5_IRQHandler(void) {
     if (TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET) {
-        TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+        TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
         timer_counter++;
-        GPIO_WriteBit(GPIOA, GPIO_Pin_1, 
-                     (BitAction)(1 - GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_1))); 
+        if (timer_counter % 500 == 0) {  // 每500ms翻转一次心跳灯
+            GPIO_WriteBit(GPIOA, GPIO_Pin_1, 
+                         (BitAction)(1 - GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_1)));
+        }
     }
 }

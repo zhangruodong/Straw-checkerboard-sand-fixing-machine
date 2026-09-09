@@ -22,7 +22,8 @@ typedef enum {
     STATE_MOTOR2_MOVE = '2',    // 电机2运动
     STATE_GROUP12_MOVE = 'B',   // TIM1+TIM2 电机组运动
     STATE_GROUP34_MOVE = 'C',   // TIM3+TIM4 电机组运动
-		STATE_TING='T'              // 停止状态
+		STATE_TING='T',              // 停止状态
+	STATE_AUTO='G'              // 自动铺草
 } SystemState;
 
 /* 单个步进电机控制结构体 */
@@ -34,6 +35,7 @@ typedef struct {
     uint16_t current_repeat;    // 当前已完成的重复次数
     uint32_t last_pulse_time;   // 上次发送脉冲的时间（毫秒）
     uint16_t pulse_interval;    // 脉冲间隔时间（毫秒）
+    bool started;              // 是否已启动（动作完成后回等待态）
 } StepMotorCtrl;// 步进电机控制结构体
 
 
@@ -46,6 +48,7 @@ typedef struct {
     uint16_t current_repeat;    // 当前已完成的重复次数
     uint32_t last_pulse_time;   // 上次发送脉冲的时间（毫秒）
     uint16_t pulse_interval;    // 脉冲间隔时间（毫秒）
+    bool started;              // 是否已启动（动作完成后回等待态）
 } GroupMotorCtrl;
 
 /* 系统控制结构体 */
@@ -61,19 +64,34 @@ typedef struct {
 
     GroupMotorCtrl group12;     // TIM1+TIM2 电机组
     GroupMotorCtrl group34;     // TIM3+TIM4 电机组
+    uint8_t auto_step;           // 自动铺草流程当前步骤
+    uint16_t auto_count;         // 当前已铺格子数
+    uint32_t step_start;         // 当前步骤开始时间(ms)
 } SystemCtrl;
 
+
+#define COMM_TIMEOUT_MS 120000  // 通信超时（毫秒）
+
+/* 自动铺草流程参数（按实际机械标定） */
+#define GRID_STEPS      600    // 一个格子间距的行走步数（1步≈1ms）
+#define ROD_DOWN_MS     800    // 推杆下降时间(ms)
+#define ROD_UP_MS       800    // 推杆上升时间(ms)
+#define PRESS_MS        500    // 压草保持时间(ms)
+#define TURN_STEPS      500    // 原地转向90°的步数
+#define GRID_PER_ROW    10     // 一行铺几个格子
 
 extern SystemCtrl sys_ctrl;
 
 void TIM5_Init(void);
 void GPIO1_Init(void);
 void System_StateMachine(void);
-void TIM5_UP_IRQHandler(void);
+void TIM5_IRQHandler(void);
 uint32_t GetTick(void);
 void Hardware_Init(void);
 void ProcessCommand(void);
 void System_Init(void);
+void IWDG_Init(void);
+void AutoPave(void);
 
 
 #endif

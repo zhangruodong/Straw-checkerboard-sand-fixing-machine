@@ -11,5 +11,7 @@ void Serial2_SendNumber(uint32_t Number, uint8_t Length);
 uint8_t Serial1_GetRxFlag(void);
 uint8_t Serial2_GetRxFlag(void);
 uint8_t Serial1_GetRxData(void);
+extern char Serial1_RxLine[16];
+extern volatile uint8_t Serial1_LineReady;
 uint8_t Serial2_GetRxData(void);
 #endif
