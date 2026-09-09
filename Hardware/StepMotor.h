@@ -23,4 +23,6 @@ void StepMotor_UpdateNonBlocking(void);
 void StepMotor_UpdateGroup12(void);
 void StepMotor_UpdateGroup34(void);
 void StopAllMotors(void);
+void Track_Go(int16_t steps);
+void Track_Turn(int8_t dir, uint16_t steps);
 #endif
