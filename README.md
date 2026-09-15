@@ -97,3 +97,24 @@ Straw checkerboard sand-fixing machine/
 - 推杆继电器、限位开关、OLED 都接在 GPIOB，接线前对照接线表核对，避免与电机 PB6 冲突。
 - 步进电机的 PUL 脚是定时器 PWM 复用输出，DIR 脚是普通 GPIO 推挽输出，方向 0/1 对应正反转。
 - 状态机里各电机的脉冲数/重复次数当前是调试用测试值，正式使用时在 [Hardware/system.c](Hardware/system.c) 的 `System_StateMachine()` 里按需调整。
+
+## 许可
+
+本项目**自有代码**采用 MIT 许可，见 [LICENSE](LICENSE)，覆盖范围为：
+
+| 目录/文件 | 内容 |
+|---|---|
+| `Hardware/` | 本项目外设驱动与业务逻辑 |
+| `User/` | `main.c`、中断、`stm32f10x_conf.h` |
+| `System/` | `Delay` 延时模块 |
+| `Project.uvprojx`、`README.md` | 工程文件与文档 |
+
+以下为**第三方代码，不在上述 MIT 许可范围内**，版权归各自所有者：
+
+| 目录 | 内容 | 版权 | 许可 |
+|---|---|---|---|
+| `Library/`（46 个文件） | STM32F10x 标准外设库 V3.5.0 | © 2011 STMicroelectronics | MCD-ST Liberty SW License Agreement V2 |
+| `Start/`（11 个文件） | 启动文件、`stm32f10x.h`、`system_stm32f10x.*` | © 2011 STMicroelectronics | 同上 |
+| `Start/`（2 个文件） | `core_cm3.c` / `core_cm3.h`（CMSIS V1.30） | © 2009 ARM Limited | ARM 随附声明，限「随支持 ARM 处理器的开发工具分发」 |
+
+> 上述第三方许可的**协议原文不在本仓库内**，各文件头部保留了原始版权与免责声明。逐文件明细见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
